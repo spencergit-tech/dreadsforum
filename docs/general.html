@@ -3,222 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>General Board - Dread Forum</title>
+    <title>General Board</title>
     <style>
-        /* Add some basic styling */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #333;
-            color: white;
-            padding: 10px;
-            text-align: center;
-        }
-        .thread-container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        .thread {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-        .create-thread {
-            margin: 20px 0;
-        }
-        .create-thread input, .create-thread textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .create-thread button {
-            padding: 10px 20px;
-            background-color: #333;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        .create-thread button:hover {
-            background-color: #555;
-        }
-        .login-container, .register-container {
-            display: none;
-            text-align: center;
-        }
+        /* Your existing styles here */
     </style>
 </head>
 <body>
-
-<header>
-    <h1>Welcome to Dread Forum - General Board</h1>
-</header>
-
-<div class="login-container" id="loginContainer">
-    <h2>Login</h2>
-    <form id="loginForm">
-        <input type="text" id="loginUsername" placeholder="Username" required>
-        <input type="password" id="loginPassword" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="#" onclick="toggleRegisterForm()">Register here</a></p>
-</div>
-
-<div class="register-container" id="registerContainer">
-    <h2>Register</h2>
-    <form id="registerForm">
-        <input type="text" id="registerUsername" placeholder="Username" required>
-        <input type="password" id="registerPassword" placeholder="Password" required>
-        <button type="submit">Register</button>
-    </form>
-    <p>Already have an account? <a href="#" onclick="toggleLoginForm()">Login here</a></p>
-</div>
-
-<div class="thread-container" id="threadsContainer">
-    <h2>Threads</h2>
-    <div id="threadsList"></div>
-
-    <div class="create-thread" id="createThreadForm">
-        <h3>Create a New Thread</h3>
-        <input type="text" id="threadSubject" placeholder="Thread Subject" required>
-        <textarea id="threadComment" placeholder="Your comment" rows="4" required></textarea>
-        <button onclick="createThread()">Create Thread</button>
+    <header>
+        <h1>General</h1>
+    </header>
+    <div class="auth-form" id="auth-form">
+        <input type="text" id="username-field" placeholder="Username">
+        <input type="password" id="password-field" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <button onclick="login()">Login</button>
+        <button onclick="logout()" style="display:none;" id="logout-btn">Logout</button>
     </div>
-</div>
+    <div class="back-button">
+        <a href="index.html">&lt; Back to Main Page</a>
+    </div>
+    <div class="board-title">
+        <p>Welcome to the General Board!</p>
+    </div>
+    <div class="sort-options">
+        <label for="sort-select">Sort by:</label>
+        <select id="sort-select">
+            <option value="recent">Most Recent</option>
+            <option value="replies">Most Replies</option>
+            <option value="votes">Most Upvoted</option>
+        </select>
+    </div>
+    <div class="new-thread">
+        <button id="start-thread-btn">Start a New Thread</button>
+        <div id="thread-form">
+            <h2>Create a New Thread</h2>
+            <form id="create-thread">
+                <label for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject" required>
+                <label for="comment">Comment:</label>
+                <textarea id="comment" name="comment" rows="4" required></textarea>
+                <label for="media">Attach Image/Media:</label>
+                <input type="file" id="media" name="media" accept="image/*,video/*">
+                <button type="submit">Submit Thread</button>
+            </form>
+        </div>
+    </div>
+    <div class="threads" id="threads-container">
+        <h2>Threads:</h2>
+        <!-- Threads will be dynamically added here -->
+    </div>
 
-<script>
-// Set the base URL for your API
-const baseURL = 'http://localhost:5000/api';
+    <script>
+        let currentUser = null;
 
-// Check if a user is logged in
-let token = localStorage.getItem('token');
+        // Handle login/logout
+        document.getElementById('start-thread-btn').onclick = function() {
+            const form = document.getElementById('thread-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        };
 
-// Show login or register form based on the login state
-if (token) {
-    loadThreads();
-    document.getElementById('createThreadForm').style.display = 'block';
-} else {
-    toggleLoginForm();
-}
+        document.getElementById('create-thread').onsubmit = function(event) {
+            event.preventDefault();
 
-function toggleLoginForm() {
-    document.getElementById('loginContainer').style.display = 'block';
-    document.getElementById('registerContainer').style.display = 'none';
-}
+            if (!currentUser) {
+                alert("You must be logged in to create a thread.");
+                return;
+            }
 
-function toggleRegisterForm() {
-    document.getElementById('loginContainer').style.display = 'none';
-    document.getElementById('registerContainer').style.display = 'block';
-}
+            const subject = document.getElementById('subject').value;
+            const comment = document.getElementById('comment').value;
+            const mediaInput = document.getElementById('media');
+            const mediaFiles = mediaInput.files;
 
-// Handle the login form submission
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
+            const formData = new FormData();
+            formData.append('subject', subject);
+            formData.append('comment', comment);
+            formData.append('username', currentUser.username);
 
-    const response = await fetch(`${baseURL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
+            for (let i = 0; i < mediaFiles.length; i++) {
+                formData.append('media', mediaFiles[i]);
+            }
 
-    const data = await response.json();
-    if (response.ok) {
-        localStorage.setItem('token', data.token);
-        token = data.token;
-        loadThreads();
-        document.getElementById('createThreadForm').style.display = 'block';
-    } else {
-        alert('Login failed: ' + data.message);
-    }
-});
+            fetch('/threads', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Thread created successfully!");
+                fetchThreads();  // Refresh threads list
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        };
 
-// Handle the register form submission
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('registerUsername').value;
-    const password = document.getElementById('registerPassword').value;
-
-    const response = await fetch(`${baseURL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-        alert('User registered successfully! Please log in.');
-        toggleLoginForm();
-    } else {
-        alert('Registration failed: ' + data.message);
-    }
-});
-
-// Load threads from the backend
-async function loadThreads() {
-    const response = await fetch(`${baseURL}/threads`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`
+        // Fetch threads from backend
+        function fetchThreads() {
+            fetch('/threads')
+                .then(response => response.json())
+                .then(threads => {
+                    displayThreads(threads);
+                })
+                .catch(error => {
+                    console.error('Error fetching threads:', error);
+                });
         }
-    });
 
-    const threads = await response.json();
-    displayThreads(threads);
-}
+        function displayThreads(threads) {
+            const threadsContainer = document.getElementById('threads-container');
+            threadsContainer.innerHTML = '<h2>Threads:</h2>'; // Reset the container
 
-// Display the threads
-function displayThreads(threads) {
-    const threadsList = document.getElementById('threadsList');
-    threadsList.innerHTML = ''; // Clear the current threads
+            threads.forEach((thread) => {
+                const threadDiv = document.createElement('div');
+                threadDiv.className = 'thread';
+                threadDiv.innerHTML = `
+                    <h3>${thread.subject} (by ${thread.username})</h3>
+                    <p>${thread.comment}</p>
+                    <p class="timestamp">Posted on: ${thread.timestamp}</p>
+                    ${thread.media.map(media => `<img src="${media}" class="media" alt="Attached media">`).join('')}
+                    <div class="vote-buttons">
+                        <button class="vote-button" onclick="voteThread(${thread.id}, 1)">Upvote</button>
+                        <button class="vote-button" onclick="voteThread(${thread.id}, -1)">Downvote</button>
+                        <span>Votes: ${thread.votes}</span>
+                    </div>
+                    <button class="reply-button" onclick="toggleReplyForm(${thread.id})">Reply</button>
+                    <div class="reply-form" id="reply-form-${thread.id}">
+                        <input type="text" placeholder="Your Name" id="reply-username-${thread.id}" required>
+                        <textarea placeholder="Your Reply" id="reply-comment-${thread.id}" rows="2" required></textarea>
+                        <button onclick="submitReply(${thread.id})">Submit Reply</button>
+                    </div>
+                    <div class="replies" id="replies-${thread.id}">
+                        <!-- Replies will be dynamically added here -->
+                    </div>
+                `;
+                threadsContainer.appendChild(threadDiv);
+            });
+        }
 
-    threads.forEach(thread => {
-        const threadDiv = document.createElement('div');
-        threadDiv.classList.add('thread');
-        threadDiv.innerHTML = `
-            <strong>${thread.username}</strong> - ${thread.subject} <br>
-            <em>${thread.comment}</em><br>
-            <small>Posted at ${new Date(thread.timestamp).toLocaleString()}</small>
-        `;
-        threadsList.appendChild(threadDiv);
-    });
-}
+        function voteThread(threadId, direction) {
+            fetch(`/threads/${threadId}/vote`, {
+                method: 'POST',
+                body: JSON.stringify({ direction }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                fetchThreads();  // Refresh threads list after vote
+            })
+            .catch(error => {
+                console.error('Error voting on thread:', error);
+            });
+        }
 
-// Create a new thread
-async function createThread() {
-    const subject = document.getElementById('threadSubject').value;
-    const comment = document.getElementById('threadComment').value;
+        // Handle replies submission
+        function submitReply(threadId) {
+            const replyUsername = currentUser ? currentUser.username : "Anonymous";
+            const replyComment = document.getElementById(`reply-comment-${threadId}`).value;
 
-    const response = await fetch(`${baseURL}/threads`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            username: 'anonymous', // You could get the username from localStorage if you want
-            subject,
-            comment
-        })
-    });
+            const replyData = { username: replyUsername, comment: replyComment };
 
-    const data = await response.json();
-    if (response.ok) {
-        alert('Thread created successfully!');
-        loadThreads(); // Reload threads after creating a new one
-    } else {
-        alert('Error creating thread: ' + data.message);
-    }
-}
-</script>
+            fetch(`/threads/${threadId}/replies`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(replyData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                fetchThreads();  // Refresh replies list
+            })
+            .catch(error => {
+                console.error('Error posting reply:', error);
+            });
+        }
 
+        // Initialize by fetching threads
+        fetchThreads();
+    </script>
 </body>
 </html>
-
