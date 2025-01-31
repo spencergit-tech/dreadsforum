@@ -11,18 +11,18 @@ const port = process.env.PORT || 5000;
 // Set up database connection using environment variables
 const pool = new Pool({
   user: process.env.DB_USER,
-  host: 'localhost', // Update this for production (Render uses a different host)
+  host: 'localhost', // Update for production (Render uses a different host)
   database: process.env.DB_NAME,
   password: process.env.DB_PASS,
   port: 5432,
 });
 
-// Set up CORS to allow the frontend to make requests to this API
+// Set up CORS to allow frontend to make requests to this API
 const corsOptions = {
   origin: 'https://spencergit-tech.github.io', // Your frontend URL
   methods: ['GET', 'POST'],
 };
-app.use(cors(corsOptions));   
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Create 'uploads' folder if it doesn't exist
@@ -42,27 +42,27 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/'); // Specify the folder to save the images
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Use current timestamp and file extension
+    cb(null, Date.now() + path.extname(file.originalname)); // Use current timestamp
   },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB file size limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
 });
 
-// API endpoint to create a new thread with image upload
+// API endpoint to create a new thread (image optional)
 app.post('/api/threads', upload.single('image'), async (req, res) => {
   const { title, content } = req.body;
-  const image = req.file ? req.file.filename : null; // Get the filename of the uploaded image
+  const image = req.file ? req.file.filename : null; // Store the image filename if uploaded
 
   try {
-    // Insert thread data into the database, including the image filename if available
+    // Insert thread data into the database, allowing `image` to be NULL
     const result = await pool.query(
       'INSERT INTO threads (title, content, image) VALUES ($1, $2, $3) RETURNING *',
       [title, content, image]
     );
-   
+
     res.status(201).json(result.rows[0]); // Return the created thread details
   } catch (error) {
     console.error(error);
@@ -77,4 +77,3 @@ app.use('/uploads', express.static('uploads'));
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
-
