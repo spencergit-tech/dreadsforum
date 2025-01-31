@@ -51,15 +51,19 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
 });
 
-// API endpoint to create a new thread (image optional)
-app.post('/api/threads', async (req, res) => {
+// API endpoint to create a new thread (image is OPTIONAL)
+app.post('/api/threads', (req, res) => {
   upload.single('image')(req, res, async (err) => {
-    if (err) {
+    if (err && err.code !== 'LIMIT_UNEXPECTED_FILE') {
       return res.status(400).json({ message: 'Error uploading image', error: err.message });
     }
 
     const { title, content } = req.body;
-    const image = req.file ? req.file.filename : null; // Only add image if it's uploaded
+    const image = req.file ? req.file.filename : null; // Only add image if uploaded
+
+    if (!title || !content) {
+      return res.status(400).json({ message: 'Title and content are required' });
+    }
 
     try {
       // Insert thread data into the database, allowing `image` to be NULL
