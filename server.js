@@ -52,22 +52,28 @@ const upload = multer({
 });
 
 // API endpoint to create a new thread (image optional)
-app.post('/api/threads', upload.single('image'), async (req, res) => {
-  const { title, content } = req.body;
-  const image = req.file ? req.file.filename : null; // Store the image filename if uploaded
+app.post('/api/threads', async (req, res) => {
+  upload.single('image')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: 'Error uploading image', error: err.message });
+    }
 
-  try {
-    // Insert thread data into the database, allowing `image` to be NULL
-    const result = await pool.query(
-      'INSERT INTO threads (title, content, image) VALUES ($1, $2, $3) RETURNING *',
-      [title, content, image]
-    );
+    const { title, content } = req.body;
+    const image = req.file ? req.file.filename : null; // Only add image if it's uploaded
 
-    res.status(201).json(result.rows[0]); // Return the created thread details
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error creating thread', error: error.message });
-  }
+    try {
+      // Insert thread data into the database, allowing `image` to be NULL
+      const result = await pool.query(
+        'INSERT INTO threads (title, content, image) VALUES ($1, $2, $3) RETURNING *',
+        [title, content, image]
+      );
+
+      res.status(201).json(result.rows[0]); // Return the created thread details
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error creating thread', error: error.message });
+    }
+  });
 });
 
 // Serve static files (images) from the "uploads" folder
@@ -77,3 +83,4 @@ app.use('/uploads', express.static('uploads'));
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
