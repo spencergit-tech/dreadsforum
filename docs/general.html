@@ -175,7 +175,7 @@
                 <input type="text" id="subject" name="subject" required>
                 <label for="comment">Comment:</label>
                 <textarea id="comment" name="comment" rows="4" required></textarea>
-                <label for="media">Attach Image/Media:</label>
+                <label for="media">Attach Image/Media (Optional):</label>
                 <input type="file" id="media" name="media" accept="image/*,video/*">
                 <button type="submit">Submit Thread</button>
             </form>
@@ -220,7 +220,7 @@
                 media: [] // Initialize media array
             };
 
-            // Process media files
+            // Process media files if any are selected
             for (let i = 0; i < mediaFiles.length; i++) {
                 const file = mediaFiles[i];
                 const reader = new FileReader();
@@ -238,6 +238,15 @@
                     }
                 };
                 reader.readAsDataURL(file); // Read the file as a data URL
+            }
+
+            if (mediaFiles.length === 0) {
+                // Add thread without media if no file is uploaded
+                threads.push(newThread);
+                displayThreads();
+                document.getElementById('create-thread').reset();
+                mediaInput.value = ''; // Clear the file input
+                document.getElementById('thread-form').style.display = 'none';
             }
         };
 
@@ -309,115 +318,50 @@
                 comment: replyComment,
                 timestamp: timestamp, // Add timestamp
                 votes: 0, // Initialize votes for the reply
-                media: [] // Initialize media array for replies
             };
 
-            // Process media for replies (if needed)
-            const replyMediaInput = document.createElement('input');
-            replyMediaInput.type = 'file';
-            replyMediaInput.accept = 'image/*,video/*';
-            replyMediaInput.onchange = function() {
-                const replyMediaFiles = this.files;
-                for (let i = 0; i < replyMediaFiles.length; i++) {
-                    const file = replyMediaFiles[i];
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        newReply.media.push(e.target.result);
-                        if (i === replyMediaFiles.length - 1) {
-                            // Add the new reply to the thread's replies array
-                            threads[index].replies.push(newReply);
-                            displayReplies(index);
-                            document.getElementById(`reply-comment-${index}`).value = '';
-                            toggleReplyForm(index); // Hide the reply form
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            // Append media input to the reply form (you can customize this part)
-            document.getElementById(`reply-form-${index}`).appendChild(replyMediaInput);
+            threads[index].replies.push(newReply); // Add reply to the thread
+            document.getElementById(`reply-comment-${index}`).value = ''; // Clear reply input
+            displayThreads(); // Re-display threads to show updated replies
         }
 
-        function displayReplies(index) {
-            const repliesContainer = document.getElementById(`replies-${index}`);
-            repliesContainer.innerHTML = ''; // Reset the container
-
-            threads[index].replies.forEach(reply => {
-                const replyDiv = document.createElement('div');
-                replyDiv.className = 'reply';
-                replyDiv.innerHTML = `
-                    <strong>${reply.username}</strong>
-                    <p>${reply.comment}</p>
-                    <p class="timestamp">Posted on: ${reply.timestamp}</p>
-                    ${reply.media.map(media => `<img src="${media}" class="media" alt="Attached media">`).join('')}
-                    <div class="vote-buttons">
-                        <button class="vote-button" onclick="voteReply(${index}, ${threads[index].replies.indexOf(reply)}, 1)">Upvote</button>
-                        <button class="vote-button" onclick="voteReply(${index}, ${threads[index].replies.indexOf(reply)}, -1)">Downvote</button>
-                        <span>Votes: ${reply.votes}</span>
-                    </div>
-                `;
-                repliesContainer.appendChild(replyDiv);
-            });
-        }
-
-        function voteReply(threadIndex, replyIndex, direction) {
-            threads[threadIndex].replies[replyIndex].votes += direction; // Increment or decrement votes based on direction
-            displayReplies(threadIndex); // Re-display replies to show updated votes
-        }
-
-        // User Management Functions
         function register() {
             const username = document.getElementById('username-field').value;
             const password = document.getElementById('password-field').value;
+
             if (username && password) {
                 currentUser = { username: username, password: password };
-                localStorage.setItem('user', JSON.stringify(currentUser));
-                document.getElementById('username-field').value = '';
-                document.getElementById('password-field').value = '';
                 document.getElementById('auth-form').style.display = 'none';
-                document.getElementById('logout-btn').style.display = 'inline';
-                alert('Registration successful');
+                document.getElementById('logout-btn').style.display = 'inline-block';
+                document.getElementById('thread-username').value = username;
+                alert('Registered and logged in successfully!');
             } else {
-                alert('Please enter both username and password');
+                alert('Please enter both username and password.');
             }
         }
 
         function login() {
             const username = document.getElementById('username-field').value;
             const password = document.getElementById('password-field').value;
-            const storedUser = JSON.parse(localStorage.getItem('user'));
 
-            if (storedUser && storedUser.username === username && storedUser.password === password) {
-                currentUser = storedUser;
-                document.getElementById('username-field').value = '';
-                document.getElementById('password-field').value = '';
+            if (username && password) {
+                currentUser = { username: username, password: password };
                 document.getElementById('auth-form').style.display = 'none';
-                document.getElementById('logout-btn').style.display = 'inline';
-                alert('Login successful');
+                document.getElementById('logout-btn').style.display = 'inline-block';
+                document.getElementById('thread-username').value = username;
+                alert('Logged in successfully!');
             } else {
-                alert('Invalid username or password');
+                alert('Please enter both username and password.');
             }
         }
 
         function logout() {
             currentUser = null;
-            localStorage.removeItem('user');
             document.getElementById('auth-form').style.display = 'block';
             document.getElementById('logout-btn').style.display = 'none';
-            alert('Logged out');
+            alert('Logged out successfully!');
         }
-
-        // Initialize board when user is logged in
-        window.onload = function() {
-            const storedUser = JSON.parse(localStorage.getItem('user'));
-            if (storedUser) {
-                currentUser = storedUser;
-                document.getElementById('auth-form').style.display = 'none';
-                document.getElementById('logout-btn').style.display = 'inline';
-            }
-            displayThreads(); // Display threads on load
-        };
     </script>
 </body>
 </html>
+
