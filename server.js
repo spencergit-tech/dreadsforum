@@ -80,6 +80,17 @@ app.post('/api/threads', (req, res) => {
   });
 });
 
+// API endpoint to fetch all threads
+app.get('/api/threads', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM threads ORDER BY created_at DESC');
+    res.status(200).json(result.rows); // Return all threads, ordered by creation time
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching threads', error: error.message });
+  }
+});
+
 // Serve static files (images) from the "uploads" folder
 app.use('/uploads', express.static('uploads'));
 
@@ -87,4 +98,5 @@ app.use('/uploads', express.static('uploads'));
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
 
