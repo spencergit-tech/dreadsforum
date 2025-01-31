@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General Board</title>
+    <style>
+        /* Your existing styles here */
+    </style>
+</head>
+<body>
+    <header>
+        <h1>General</h1>
+    </header>
+    <div class="auth-form" id="auth-form">
+        <input type="text" id="username-field" placeholder="Username">
+        <input type="password" id="password-field" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <button onclick="login()">Login</button>
+        <button onclick="logout()" style="display:none;" id="logout-btn">Logout</button>
+    </div>
+    <div class="back-button">
+        <a href="index.html">&lt; Back to Main Page</a>
+    </div>
+    <div class="board-title">
+        <p>Welcome to the General Board!</p>
+    </div>
+    <div class="sort-options">
+        <label for="sort-select">Sort by:</label>
+        <select id="sort-select">
+            <option value="recent">Most Recent</option>
+            <option value="replies">Most Replies</option>
+            <option value="votes">Most Upvoted</option>
+        </select>
+    </div>
+    <div class="new-thread">
+        <button id="start-thread-btn">Start a New Thread</button>
+        <div id="thread-form">
+            <h2>Create a New Thread</h2>
+            <form id="create-thread">
+                <label for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject" required>
+                <label for="comment">Comment:</label>
+                <textarea id="comment" name="comment" rows="4" required></textarea>
+                <label for="media">Attach Image/Media:</label>
+                <input type="file" id="media" name="media" accept="image/*,video/*">
+                <button type="submit">Submit Thread</button>
+            </form>
+        </div>
+    </div>
+    <div class="threads" id="threads-container">
+        <h2>Threads:</h2>
+        <!-- Threads will be dynamically added here -->
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // Handle login/logout
+        document.getElementById('start-thread-btn').onclick = function() {
+            const form = document.getElementById('thread-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        };
+
+        document.getElementById('create-thread').onsubmit = function(event) {
+            event.preventDefault();
+
+            if (!currentUser) {
+                alert("You must be logged in to create a thread.");
+                return;
+            }
+
+            const subject = document.getElementById('subject').value;
+            const comment = document.getElementById('comment').value;
+            const mediaInput = document.getElementById('media');
+            const mediaFiles = mediaInput.files;
+
+            const formData = new FormData();
+            formData.append('subject', subject);
+            formData.append('comment', comment);
+            formData.append('username', currentUser.username);
+
+            for (let i = 0; i < mediaFiles.length; i++) {
+                formData.append('media', mediaFiles[i]);
+            }
+
+            fetch('/threads', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Thread created successfully!");
+                fetchThreads();  // Refresh threads list
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        };
+
+        // Fetch threads from backend
+        function fetchThreads() {
+            fetch('/threads')
+                .then(response => response.json())
+                .then(threads => {
+                    displayThreads(threads);
+                })
+                .catch(error => {
+                    console.error('Error fetching threads:', error);
+                });
+        }
+
+        function displayThreads(threads) {
+            const threadsContainer = document.getElementById('threads-container');
+            threadsContainer.innerHTML = '<h2>Threads:</h2>'; // Reset the container
+
+            threads.forEach((thread) => {
+                const threadDiv = document.createElement('div');
+                threadDiv.className = 'thread';
+                threadDiv.innerHTML = `
+                    <h3>${thread.subject} (by ${thread.username})</h3>
+                    <p>${thread.comment}</p>
+                    <p class="timestamp">Posted on: ${thread.timestamp}</p>
+                    ${thread.media.map(media => `<img src="${media}" class="media" alt="Attached media">`).join('')}
+                    <div class="vote-buttons">
+                        <button class="vote-button" onclick="voteThread(${thread.id}, 1)">Upvote</button>
+                        <button class="vote-button" onclick="voteThread(${thread.id}, -1)">Downvote</button>
+                        <span>Votes: ${thread.votes}</span>
+                    </div>
+                    <button class="reply-button" onclick="toggleReplyForm(${thread.id})">Reply</button>
+                    <div class="reply-form" id="reply-form-${thread.id}">
+                        <input type="text" placeholder="Your Name" id="reply-username-${thread.id}" required>
+                        <textarea placeholder="Your Reply" id="reply-comment-${thread.id}" rows="2" required></textarea>
+                        <button onclick="submitReply(${thread.id})">Submit Reply</button>
+                    </div>
+                    <div class="replies" id="replies-${thread.id}">
+                        <!-- Replies will be dynamically added here -->
+                    </div>
+                `;
+                threadsContainer.appendChild(threadDiv);
+            });
+        }
+
+        function voteThread(threadId, direction) {
+            fetch(`/threads/${threadId}/vote`, {
+                method: 'POST',
+                body: JSON.stringify({ direction }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                fetchThreads();  // Refresh threads list after vote
+            })
+            .catch(error => {
+                console.error('Error voting on thread:', error);
+            });
+        }
+
+        // Handle replies submission
+        function submitReply(threadId) {
+            const replyUsername = currentUser ? currentUser.username : "Anonymous";
+            const replyComment = document.getElementById(`reply-comment-${threadId}`).value;
+
+            const replyData = { username: replyUsername, comment: replyComment };
+
+            fetch(`/threads/${threadId}/replies`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(replyData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                fetchThreads();  // Refresh replies list
+            })
+            .catch(error => {
+                console.error('Error posting reply:', error);
+            });
+        }
+
+        // Initialize by fetching threads
+        fetchThreads();
+    </script>
+</body>
+</html>
+
