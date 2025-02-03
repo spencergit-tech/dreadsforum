@@ -10,12 +10,13 @@ const port = process.env.PORT || 5000;
 
 // Set up database connection using environment variables
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: 'localhost', // Update for production (Render uses a different host)
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASS,
-  port: 5432,
+ const pool = new Pool({
+  connectionString: process.env.DATABASE_URL, // ✅ Use Render's database URL
+  ssl: {
+    rejectUnauthorized: false, // ✅ Required for Render
+  },
 });
+
 
 // Set up CORS to allow frontend to make requests to this API
 const corsOptions = {
