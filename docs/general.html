@@ -362,6 +362,33 @@
             alert('Logged out successfully!');
         }
     </script>
+<script>
+    async function fetchThreads() {
+        const response = await fetch('https://dreadsforum.onrender.com/api/threads');
+        const threads = await response.json();
+        
+        const threadsContainer = document.getElementById('threads-container');
+        threadsContainer.innerHTML = ''; // Clear existing threads
+
+        threads.forEach(thread => {
+            const threadElement = document.createElement('div');
+            threadElement.classList.add('thread');
+
+            threadElement.innerHTML = `
+                <h3>${thread.title}</h3>
+                <p>${thread.content}</p>
+                <p><strong>Created at:</strong> ${new Date(thread.created_at).toLocaleString()}</p>
+                ${thread.image ? `<img src="/uploads/${thread.image}" alt="thread image" />` : ''}
+            `;
+
+            threadsContainer.appendChild(threadElement);
+        });
+    }
+
+    // Call fetchThreads when the page loads
+    window.onload = fetchThreads;
+</script>
+
 </body>
 </html>
 
