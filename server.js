@@ -16,6 +16,15 @@ const pool = new Pool({
   },
 });
 
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Database connection failed:', err);
+  } else {
+    console.log('Database connected:', res.rows[0]);
+  }
+});
+
 // Set up CORS to allow frontend to make requests to this API
 const corsOptions = {
   origin: 'https://spencergit-tech.github.io', // Your frontend URL
@@ -60,7 +69,7 @@ app.post('/api/threads', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO threads (username, subject, comment) VALUES ($1, $2, $3) RETURNING *',
+      'INSERT INTO public.threads (username, subject, comment) VALUES ($1, $2, $3) RETURNING *',
       [username, subject, comment]
     );
 
@@ -75,7 +84,7 @@ app.post('/api/threads', async (req, res) => {
 app.get('/api/threads', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, subject, comment, timestamp, votes FROM threads ORDER BY timestamp DESC'
+      'SELECT id, username, subject, comment, timestamp, votes FROM public.threads ORDER BY timestamp DESC'
     );
     res.status(200).json(result.rows); // Return all threads
   } catch (error) {
