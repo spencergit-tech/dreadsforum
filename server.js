@@ -81,7 +81,7 @@ app.post('/api/threads', async (req, res) => {
 });
 
 // API endpoint to fetch all threads
-app.get('/api/threads', async (req, res) => {
+app.get('/api/threads', async (req, res) => { ... });
   try {
     const result = await pool.query(
       'SELECT id, username, subject, comment, timestamp, votes FROM public.threads ORDER BY timestamp DESC'
