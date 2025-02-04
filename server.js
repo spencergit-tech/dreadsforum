@@ -17,11 +17,11 @@ const pool = new Pool({
 });
 
 // Test database connection
-pool.query('SELECT NOW()', (err, res) => {
+pool.query('SELECT current_database()', (err, res) => {
   if (err) {
-    console.error('Database connection failed:', err);
+    console.error('❌ Database connection failed:', err);
   } else {
-    console.log('Database connected:', res.rows[0]);
+    console.log('✅ Connected to database:', res.rows[0].current_database);
   }
 });
 
@@ -42,6 +42,23 @@ if (!fs.existsSync(uploadsDir)) {
 // Root route
 app.get('/', (req, res) => {
   res.send('Backend API is working!');
+});
+
+// Debugging route to check database connection and schema
+app.get('/api/debug', async (req, res) => {
+  try {
+    const dbCheck = await pool.query('SELECT current_database()');
+    const schemaCheck = await pool.query(
+      "SELECT schemaname, tablename FROM pg_tables WHERE tablename = 'threads'"
+    );
+    res.json({
+      connectedDatabase: dbCheck.rows[0].current_database,
+      threadsTableExists: schemaCheck.rows.length > 0,
+      schemaCheck: schemaCheck.rows,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Database debug error', error: error.message });
+  }
 });
 
 // Set up multer storage configuration for image uploads
@@ -75,7 +92,7 @@ app.post('/api/threads', async (req, res) => {
 
     res.status(201).json(result.rows[0]); // Return the created thread details
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error creating thread:', error);
     res.status(500).json({ message: 'Error creating thread', error: error.message });
   }
 });
@@ -88,7 +105,7 @@ app.get('/api/threads', async (req, res) => {
     );
     res.status(200).json(result.rows); // Return all threads
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error fetching threads:', error);
     res.status(500).json({ message: 'Error fetching threads', error: error.message });
   }
 });
@@ -98,5 +115,5 @@ app.use('/uploads', express.static('uploads'));
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`🚀 Server running on http://localhost:${port}`);
 });
