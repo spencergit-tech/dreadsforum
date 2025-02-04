@@ -50,40 +50,34 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
 });
 
-// API endpoint to create a new thread (image is OPTIONAL)
-app.post('/api/threads', (req, res) => {
-  upload.single('image')(req, res, async (err) => {
-    if (err && err.code !== 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({ message: 'Error uploading image', error: err.message });
-    }
+// API endpoint to create a new thread
+app.post('/api/threads', async (req, res) => {
+  const { username, subject, comment } = req.body;
 
-    const { title, content } = req.body;
-    const image = req.file ? req.file.filename : null; // Only add image if uploaded
+  if (!username || !subject || !comment) {
+    return res.status(400).json({ message: 'Username, subject, and comment are required' });
+  }
 
-    if (!title || !content) {
-      return res.status(400).json({ message: 'Title and content are required' });
-    }
+  try {
+    const result = await pool.query(
+      'INSERT INTO threads (username, subject, comment) VALUES ($1, $2, $3) RETURNING *',
+      [username, subject, comment]
+    );
 
-    try {
-      // Insert thread data into the database, allowing `image` to be NULL
-      const result = await pool.query(
-        'INSERT INTO threads (title, content, image) VALUES ($1, $2, $3) RETURNING *',
-        [title, content, image]
-      );
-
-      res.status(201).json(result.rows[0]); // Return the created thread details
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error creating thread', error: error.message });
-    }
-  });
+    res.status(201).json(result.rows[0]); // Return the created thread details
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error creating thread', error: error.message });
+  }
 });
 
 // API endpoint to fetch all threads
 app.get('/api/threads', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM threads ORDER BY created_at DESC');
-    res.status(200).json(result.rows); // Return all threads, ordered by creation time
+    const result = await pool.query(
+      'SELECT id, username, subject, comment, timestamp, votes FROM threads ORDER BY timestamp DESC'
+    );
+    res.status(200).json(result.rows); // Return all threads
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error fetching threads', error: error.message });
