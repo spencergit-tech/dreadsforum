@@ -59,37 +59,53 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
 });
 
-// API endpoint to create a new thread
+// API endpoint to create a new thread or reply
 app.post('/api/threads', async (req, res) => {
-  const { username, subject, comment } = req.body;
+  const { username, subject, comment, parent_id } = req.body;
 
-  if (!username || !subject || !comment) {
-    return res.status(400).json({ message: 'Username, subject, and comment are required' });
+  if (!username || !comment) {
+    return res.status(400).json({ message: 'Username and comment are required' });
   }
 
   try {
     const result = await pool.query(
-      'INSERT INTO public.threads (username, subject, comment) VALUES ($1, $2, $3) RETURNING *',
-      [username, subject, comment]
+      'INSERT INTO public.threads (username, subject, comment, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [username, subject, comment, parent_id]
     );
 
-    res.status(201).json(result.rows[0]); // Return the created thread details
+    res.status(201).json(result.rows[0]); // Return the created thread or reply
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error creating thread', error: error.message });
+    res.status(500).json({ message: 'Error creating thread/reply', error: error.message });
   }
 });
 
-// API endpoint to fetch all threads
-app.get('/api/threads', async (req, res) => { ... });
+// API endpoint to fetch all main threads
+app.get('/api/threads', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, subject, comment, timestamp, votes FROM public.threads ORDER BY timestamp DESC'
+      'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC'
     );
     res.status(200).json(result.rows); // Return all threads
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error fetching threads', error: error.message });
+  }
+});
+
+// API endpoint to fetch replies for a specific thread
+app.get('/api/threads/:thread_id/replies', async (req, res) => {
+  const { thread_id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM public.threads WHERE parent_id = $1 ORDER BY timestamp ASC',
+      [thread_id]
+    );
+    res.status(200).json(result.rows); // Return replies
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching replies', error: error.message });
   }
 });
 
