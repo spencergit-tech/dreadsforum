@@ -25,6 +25,9 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
+// Set search path explicitly to public schema
+pool.query('SET search_path TO public;');
+
 // Set up CORS to allow frontend to make requests to this API
 const corsOptions = {
   origin: 'https://spencergit-tech.github.io', // Your frontend URL
@@ -69,7 +72,7 @@ app.post('/api/threads', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO threads (username, subject, comment, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      'INSERT INTO public.threads (username, subject, comment, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
       [username, subject, comment, parent_id]
     );
 
@@ -84,7 +87,7 @@ app.post('/api/threads', async (req, res) => {
 app.get('/api/threads', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM threads WHERE parent_id IS NULL ORDER BY timestamp DESC'
+      'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC'
     );
     res.status(200).json(result.rows); // Return all threads
   } catch (error) {
@@ -99,7 +102,7 @@ app.get('/api/threads/:thread_id/replies', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM threads WHERE parent_id = $1 ORDER BY timestamp ASC',
+      'SELECT * FROM public.threads WHERE parent_id = $1 ORDER BY timestamp ASC',
       [thread_id]
     );
     res.status(200).json(result.rows); // Return replies
@@ -114,5 +117,5 @@ app.use('/uploads', express.static('uploads'));
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
