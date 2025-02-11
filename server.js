@@ -69,7 +69,7 @@ app.post('/api/threads', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO public.threads (username, subject, comment, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      'INSERT INTO threads (username, subject, comment, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
       [username, subject, comment, parent_id]
     );
 
@@ -84,7 +84,7 @@ app.post('/api/threads', async (req, res) => {
 app.get('/api/threads', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC'
+      'SELECT * FROM threads WHERE parent_id IS NULL ORDER BY timestamp DESC'
     );
     res.status(200).json(result.rows); // Return all threads
   } catch (error) {
@@ -99,7 +99,7 @@ app.get('/api/threads/:thread_id/replies', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM public.threads WHERE parent_id = $1 ORDER BY timestamp ASC',
+      'SELECT * FROM threads WHERE parent_id = $1 ORDER BY timestamp ASC',
       [thread_id]
     );
     res.status(200).json(result.rows); // Return replies
