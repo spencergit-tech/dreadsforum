@@ -17,11 +17,11 @@ const pool = new Pool({
 });
 
 // Test database connection
-pool.query('SELECT NOW()', (err, res) => {
+pool.query('SELECT * FROM public.threads LIMIT 1', (err, res) => {
   if (err) {
-    console.error('Database connection failed:', err);
+    console.error('Threads table not found:', err);
   } else {
-    console.log('Database connected:', res.rows[0]);
+    console.log('Threads table exists:', res.rows);
   }
 });
 
