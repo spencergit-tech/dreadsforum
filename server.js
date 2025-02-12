@@ -26,7 +26,9 @@ pool.query('SELECT * FROM public.threads LIMIT 1', (err, res) => {
 });
 
 // Set search path explicitly to public schema
-pool.query('SET search_path TO public;');
+pool.on('connect', async (client) => {
+  await client.query('SET search_path TO public;');
+});
 
 // Set up CORS to allow frontend to make requests to this API
 const corsOptions = {
@@ -86,12 +88,12 @@ app.post('/api/threads', async (req, res) => {
 // API endpoint to fetch all main threads
 app.get('/api/threads', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC'
-    );
+    const query = 'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC';
+    console.log('Running query:', query); // ✅ Log query
+    const result = await pool.query(query);
     res.status(200).json(result.rows); // Return all threads
   } catch (error) {
-    console.error(error);
+    console.error('Database Query Error:', error); // ✅ Log full error
     res.status(500).json({ message: 'Error fetching threads', error: error.message });
   }
 });
