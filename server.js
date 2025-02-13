@@ -10,7 +10,7 @@ const port = process.env.PORT || 5000;
 
 // Set up database connection using environment variables
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, || "postgresql://postgres:nuxtxfgeaeoosizrqqkv@db.nuxtxfgeaeoosizrqqkv.supabase.co:5432/postgres"
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:nuxtxfgeaeoosizrqqkv@db.nuxtxfgeaeoosizrqqkv.supabase.co:5432/postgres"
   ssl: {rejectUnauthorized: false },
 });
 
