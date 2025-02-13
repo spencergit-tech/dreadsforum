@@ -8,61 +8,57 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Set up database connection using environment variables
+// ✅ Corrected Database Connection Setup
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:nuxtxfgeaeoosizrqqkv@db.nuxtxfgeaeoosizrqqkv.supabase.co:5432/postgres"
-  ssl: { rejectUnauthorized: false },
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:nuxtxfgeaeoosizrqqkv@db.nuxtxfgeaeoosizrqqkv.supabase.co:5432/postgres",
+  ssl: { rejectUnauthorized: false }, // ✅ Fixed missing comma
 });
 
-// Test database connection
+// ✅ Set search path explicitly to the public schema
+pool.query('SET search_path TO public;').catch((err) => {
+  console.error('Error setting search_path:', err);
+});
+
+// ✅ Test database connection
 pool.query('SELECT * FROM public.threads LIMIT 1', (err, res) => {
   if (err) {
-    console.error('Threads table not found:', err);
+    console.error('❌ Error: Threads table not found:', err.message);
   } else {
-    console.log('Threads table exists:', res.rows);
+    console.log('✅ Threads table exists:', res.rows);
   }
 });
 
-// Set search path explicitly to public schema
-pool.on('connect', async (client) => {
-  await client.query('SET search_path TO public;');
-});
-
-// Set up CORS to allow frontend to make requests to this API
+// ✅ Set up CORS
 const corsOptions = {
-  origin: 'https://spencergit-tech.github.io', // Your frontend URL
+  origin: 'https://spencergit-tech.github.io', // Frontend URL
   methods: ['GET', 'POST'],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Create 'uploads' folder if it doesn't exist
+// ✅ Create 'uploads' folder if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
-// Root route
+// ✅ Root route
 app.get('/', (req, res) => {
   res.send('Backend API is working!');
 });
 
-// Set up multer storage configuration for image uploads
+// ✅ Multer setup for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Specify the folder to save the images
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Use current timestamp
+    cb(null, Date.now() + path.extname(file.originalname));
   },
 });
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
-});
-
-// API endpoint to create a new thread or reply
+// ✅ Create a new thread or reply
 app.post('/api/threads', async (req, res) => {
   const { username, subject, comment, parent_id } = req.body;
 
@@ -76,27 +72,27 @@ app.post('/api/threads', async (req, res) => {
       [username, subject, comment, parent_id]
     );
 
-    res.status(201).json(result.rows[0]); // Return the created thread or reply
+    res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error creating thread/reply:', error.message);
     res.status(500).json({ message: 'Error creating thread/reply', error: error.message });
   }
 });
 
-// API endpoint to fetch all main threads
+// ✅ Fetch all main threads
 app.get('/api/threads', async (req, res) => {
   try {
     const query = 'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC';
-    console.log('Running query:', query); // ✅ Log query
+    console.log('🛠 Running query:', query);
     const result = await pool.query(query);
-    res.status(200).json(result.rows); // Return all threads
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Database Query Error:', error); // ✅ Log full error
+    console.error('❌ Database Query Error:', error.message);
     res.status(500).json({ message: 'Error fetching threads', error: error.message });
   }
 });
 
-// API endpoint to fetch replies for a specific thread
+// ✅ Fetch replies for a specific thread
 app.get('/api/threads/:thread_id/replies', async (req, res) => {
   const { thread_id } = req.params;
 
@@ -105,17 +101,17 @@ app.get('/api/threads/:thread_id/replies', async (req, res) => {
       'SELECT * FROM public.threads WHERE parent_id = $1 ORDER BY timestamp ASC',
       [thread_id]
     );
-    res.status(200).json(result.rows); // Return replies
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error fetching replies:', error.message);
     res.status(500).json({ message: 'Error fetching replies', error: error.message });
   }
 });
 
-// Serve static files (images) from the "uploads" folder
+// ✅ Serve static images from "uploads"
 app.use('/uploads', express.static('uploads'));
 
-// Start the server
+// ✅ Start the server
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });
