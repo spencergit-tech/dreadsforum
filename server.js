@@ -8,10 +8,10 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ✅ Corrected Database Connection Setup
+// ✅ Updated Database Connection Setup
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:nuxtxfgeaeoosizrqqkv@db.nuxtxfgeaeoosizrqqkv.supabase.co:5432/postgres",
-  ssl: { rejectUnauthorized: false }, // ✅ Fixed missing comma
+  connectionString: process.env.DATABASE_URL || "postgresql://dread_forum_user:tFl8I6hKobuUW2VmsDdaKKgBLlM5kk1I@dpg-cuefn11u0jms73calkn0-a.oregon-postgres.render.com/dread_forum",
+  ssl: { rejectUnauthorized: false },
 });
 
 // ✅ Set search path explicitly to the public schema
