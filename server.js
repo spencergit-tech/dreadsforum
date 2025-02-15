@@ -14,10 +14,11 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// ✅ Set search path explicitly to the public schema
-pool.query('SET search_path TO public;').catch((err) => {
-  console.error('Error setting search_path:', err);
-});
+// ✅ Ensure 'threads' table has a 'timestamp' column
+pool.query(`
+  ALTER TABLE public.threads 
+  ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT NOW();
+`).catch(err => console.error("❌ Error ensuring timestamp column:", err));
 
 // ✅ Test database connection
 pool.query('SELECT * FROM public.threads LIMIT 1', (err, res) => {
@@ -60,6 +61,7 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 1
 
 // ✅ Create a new thread or reply
 app.post('/api/threads', async (req, res) => {
+  console.log("Incoming thread data:", req.body); // Debugging line
   const { username, subject, comment, parent_id } = req.body;
 
   if (!username || !comment) {
@@ -68,14 +70,14 @@ app.post('/api/threads', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO public.threads (username, subject, comment, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      'INSERT INTO public.threads (username, subject, comment, parent_id, timestamp) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
       [username, subject, comment, parent_id]
     );
-
+    console.log("Thread inserted:", result.rows[0]); // Debugging line
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('❌ Error creating thread/reply:', error.message);
-    res.status(500).json({ message: 'Error creating thread/reply', error: error.message });
+    console.error('❌ Error creating thread:', error.message);
+    res.status(500).json({ message: 'Error creating thread', error: error.message });
   }
 });
 
@@ -85,6 +87,7 @@ app.get('/api/threads', async (req, res) => {
     const query = 'SELECT * FROM public.threads WHERE parent_id IS NULL ORDER BY timestamp DESC';
     console.log('🛠 Running query:', query);
     const result = await pool.query(query);
+    console.log("Fetched threads:", result.rows);
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('❌ Database Query Error:', error.message);
